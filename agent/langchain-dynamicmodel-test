@@ -1,0 +1,48 @@
+from langchain.tools import tool
+from langchain_core.messages import HumanMessage
+from langchain_community.chat_models import ChatTongyi
+from langchain_community.chat_models import ChatOllama
+from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+import os
+
+basic_model = ChatOllama(model="gemma3:4b")
+os.environ["DASHSCOPE_API_KEY"] = "sk-5e542da025fd4f05902320081e15e0d9"
+advanced_model = ChatTongyi(model="qwen-plus")
+
+@tool
+def search(query: str) -> str:
+    """Search for information."""
+    return f"Results for: {query}"
+
+@tool
+def get_weather(location: str) -> str:
+    """Get weather information for a location."""
+    return f"Weather in {location}: Sunny, 72°F"
+
+@tool
+def get_stock(code: str) -> str:
+    """"search stock information by code"""
+    return f"{code} up 2% today..."
+
+@wrap_model_call
+def dynamic_model_selection(request: ModelRequest, handler) -> ModelResponse:
+    """Choose model based on conversation complexity."""
+    message_count = len(request.state["messages"])
+    print("message_count:",message_count)
+    if message_count > 0:
+        # Use an advanced model for longer conversations
+        model = advanced_model
+    else:
+        model = basic_model
+
+    return handler(request.override(model=model))
+tools = [search, get_weather, get_stock]
+agent = create_agent(
+    model=basic_model,  # Default model
+    tools=tools,
+    middleware=[dynamic_model_selection]
+)
+result = agent.invoke({"messages": [HumanMessage("今天天气如何,股票600021如何")]})
+for msg in result["messages"]:
+    print(f"{msg.__class__.__name__}:{msg.content}\n")

@@ -1,10 +1,11 @@
 import langchain_community.llms as llms
 from langchain_core.prompts import PromptTemplate
 import json
+import langchain
 
 # 连接Ollama
 llm = llms.Ollama(model="gemma3:4b")
-
+print(f"LangChain 版本: {langchain.__version__}")
 # # 简单问答
 # question = "你好，请介绍一下你自己"
 # print(f"问: {question}")
